@@ -1,12 +1,14 @@
 package com.example.springobjectmapper.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
 @Entity
+@Data
 public class Order {
 
     @Id
