@@ -31,7 +31,7 @@ public class ProductServiceImpl implements  ProductService{
     }
 
     @Override
-    public String createProduct(String jsonValue) throws JsonProcessingException {
+    public String createProduct(String jsonValue){
         Product product = converter(jsonValue);
         if(!productRepository.existsById(product.getProductId())){
             productRepository.save(product);
