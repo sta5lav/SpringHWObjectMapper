@@ -17,14 +17,14 @@ public class OrderServiceImpl implements OrderService{
 
     private final ObjectMapper objectMapper;
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+    private final ProductService productService;
 
     public OrderServiceImpl(ObjectMapper objectMapper,
                             OrderRepository orderRepository,
-                            ProductRepository productRepository) {
+                            ProductService productService) {
         this.objectMapper = objectMapper;
         this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
+        this.productService = productService;
     }
 
 
@@ -39,17 +39,7 @@ public class OrderServiceImpl implements OrderService{
         Order order = converter(orderJson);
         List<Product> products = order.getProducts();
         for (Product orderProduct : products) {
-            Optional<Product> productOptional = productRepository.findById(orderProduct.getProductId());
-            if (productOptional.isPresent()) {
-                Product product = productOptional.get();
-                if (orderProduct.getQuantityInStock() > product.getQuantityInStock()) {
-                    throw new RuntimeException("Недостаточное количество продукта " + product.getName() + " на складе");
-                }
-                product.setQuantityInStock(product.getQuantityInStock() - orderProduct.getQuantityInStock());
-                productRepository.save(product);
-            } else {
-                throw new RuntimeException("Продукт с идентификатором " + orderProduct.getProductId() + " не найден");
-            }
+            productService.checkProductInStock(orderProduct);
         }
         return orderRepository.save(order);
     }

@@ -4,22 +4,24 @@ import com.example.springobjectmapper.model.Product;
 import com.example.springobjectmapper.repository.ProductRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ProductServiceImpl implements  ProductService{
+public class ProductServiceImpl implements ProductService {
 
     private final ObjectMapper objectMapper;
     private final ProductRepository productRepository;
 
 
     @Override
-    public List<String> getAllProducts(){
+    public List<String> getAllProducts() {
         return productRepository.findAll().stream()
                 .map(this::converter)
                 .collect(Collectors.toList());
@@ -31,9 +33,9 @@ public class ProductServiceImpl implements  ProductService{
     }
 
     @Override
-    public String createProduct(String jsonValue){
+    public String createProduct(String jsonValue) {
         Product product = converter(jsonValue);
-        if(!productRepository.existsById(product.getProductId())){
+        if (!productRepository.existsById(product.getProductId())) {
             productRepository.save(product);
             return jsonValue;
         } else return null;
@@ -64,8 +66,25 @@ public class ProductServiceImpl implements  ProductService{
         return false;
     }
 
+    @Override
+    @Transactional
+    public void checkProductInStock(Product orderProduct) {
+        Optional<Product> productOptional
+                = productRepository.findById(orderProduct.getProductId());
+        if (productOptional.isPresent()) {
+            Product product = productOptional.get();
+            if (product.getQuantityInStock() > product.getQuantityInStock()) {
+                throw new RuntimeException("Недостаточное количество продукта " + product.getName() + " на складе");
+            }
+            product.setQuantityInStock(product.getQuantityInStock() - orderProduct.getQuantityInStock());
+            productRepository.save(product);
+        } else {
+            throw new RuntimeException("Продукт с идентификатором " + orderProduct.getProductId() + " не найден");
+        }
+    }
 
-    private String converter(Product product)  {
+
+    private String converter(Product product) {
         try {
             return objectMapper.writeValueAsString(product);
         } catch (JsonProcessingException e) {
@@ -73,7 +92,7 @@ public class ProductServiceImpl implements  ProductService{
         }
     }
 
-    private Product converter(String jsonValue)  {
+    private Product converter(String jsonValue) {
         try {
             return objectMapper.readValue(jsonValue, Product.class);
         } catch (JsonProcessingException e) {
